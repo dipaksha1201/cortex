@@ -2,25 +2,26 @@ from ..preprocessors import BasicPreprocessor
 from llama_index.core.node_parser import SimpleNodeParser
 from llama_index.core import Document, SummaryIndex
 from ...storage import DiskStore
+from ...interface.base_indexer import BaseIndexer
 
-index_source = "analytical"
-class AnalyticalIndexer:
+index_source = "sparse"
+class SparseIndexer(BaseIndexer):
     def __init__(self):
         pass
 
-    def index(self, file_name, documents=None):
+    def index(self, index_name, documents=None):
 
         if documents is None:
-            index = self.get_index_from_storage(file_name)
+            index = self.get_index_from_storage(index_name)
             return index
 
         document_chunks = self.create_chunks_from_documents(documents)
         summary_index = SummaryIndex.from_documents(document_chunks)
-        DiskStore.persist_index(summary_index, index_source, file_name)
+        DiskStore.persist_index(summary_index, index_source, index_name)
         return summary_index
 
-    def get_index_from_storage(self, file_name):
-        loaded_index = DiskStore.load_index(index_source,file_name)
+    def get_index_from_storage(self, index_name):
+        loaded_index = DiskStore.load_index(index_source,index_name)
         return loaded_index
 
     def convert_subdocs_to_documents(self, sub_docs):

@@ -1,5 +1,5 @@
 from .parser import Parser
-from .preprocessor import Preprocessor
-from .indexer import Indexer
+from .preprocessors import BasicPreprocessor
+from .index import Indexer
 
 __all__ = ['Parser', 'Preprocessor', 'Indexer']

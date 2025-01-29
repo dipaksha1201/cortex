@@ -1,4 +1,5 @@
 from pinecone import Pinecone, ServerlessSpec
+from langchain_pinecone import PineconeVectorStore
 import logging
 from dotenv import load_dotenv
 import os   
@@ -11,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class PineconeStore:
-    def __init__(self, api_key, environment):
+    def __init__(self):
         self.initialized_pinecone = Pinecone(api_key=os.getenv("PINE_CONE_API_KEY"))
         logger.info("Pinecone initialized")
 

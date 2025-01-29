@@ -1,8 +1,6 @@
 from llama_parse import LlamaParse
-from config import Settings
 from dotenv import load_dotenv
 import os
-import json
 
 load_dotenv()
 

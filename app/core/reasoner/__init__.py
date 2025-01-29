@@ -1,3 +1,3 @@
-from .retriever import Retriever
+from .retriever import MultiVectorRetriever
 
 __all__ = ['Retriever']

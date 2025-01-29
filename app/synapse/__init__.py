@@ -1,1 +1,1 @@
-
+from .router import router as synapse_router

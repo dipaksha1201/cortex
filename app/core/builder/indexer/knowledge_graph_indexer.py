@@ -1,5 +1,4 @@
-from llama_index.core.schema import Document
-from initialization import gemini_pro_model
+from ....initialization import gemini_pro_model
 from llama_index.core.indices.property_graph import (
     ImplicitPathExtractor,
     SimpleLLMPathExtractor,
@@ -8,39 +7,42 @@ from llama_index.core import PropertyGraphIndex
 from ..preprocessors import BasicPreprocessor
 import logging
 from ...storage import DiskStore
+from ...interface.base_indexer import BaseIndexer
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 index_source = "knowledge_graph"
-class KnowledgeGraphIndexer:
+class KnowledgeGraphIndexer(BaseIndexer):
     def __init__(self):
         pass
 
-    def index(self, file_name, documents=None):
+    def index(self, index_name, documents):
         try:
-            if documents is None:
-                index = self.get_index_from_storage(file_name)
-                return index
+            index = self.get_index_from_storage(index_name)
+            sub_docs = BasicPreprocessor.split_docs_by_separator(documents)
+            
+            if index:
+                index.insert(sub_docs)
             else:
                 # Implement knowledge graph indexing logic here
-                sub_docs = BasicPreprocessor.split_docs_by_separator(documents)
                 index = self.create_property_graph_index(sub_docs, gemini_pro_model)
-                DiskStore.persist_index(index,index_source, file_name)
-                return True
+
+            DiskStore.persist_index(index,index_source, index_name)
+            return True
         except Exception as e:
             logger.error(f"Error in indexing: {e}")
             return False
 
-    def get_index_from_storage(self, file_name):    
+    def get_index_from_storage(self, index_name):    
         try:
-            loaded_index = DiskStore.load_index(index_source,file_name)
+            loaded_index = DiskStore.load_index(index_source,index_name)
             return loaded_index
         except Exception as e:
             logger.error(f"Error loading index from storage: {e}")
-            raise
-
+            return False
+    
     def create_property_graph_index(self, sub_docs, llm):
         try:
             index = PropertyGraphIndex.from_documents(

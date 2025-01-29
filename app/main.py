@@ -1,34 +1,52 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from .api import api_router
+from .synapse import synapse_router
 import logging
 import uvicorn
+import os
+
+# Get absolute path to project root
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+log_dir = os.path.join(project_root, "logs")
+log_file_path = os.path.join(log_dir, "app.log")
+
+# Create logs directory
+os.makedirs(log_dir, exist_ok=True)
+
+print(f"Log directory: {log_dir}")  # Debug print
+print(f"Log file path: {log_file_path}")  # Debug print
 
 # Configure logging
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s',
-                    handlers=[
-                        logging.FileHandler("logs/app.log"),  # Log file path
-                        logging.StreamHandler()            # Console output
-                    ])
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file_path, mode='a'),  # Append mode
+        logging.StreamHandler()
+    ],
+    force=True
+)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Cortex API",
-    description="A powerful neural engine for processing and analyzing data",
+    description="AI-powered document processing and analysis API",
     version="1.0.0"
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=["*"],  # Allows all origins
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
 )
+
+# Include routers
+app.include_router(api_router, prefix="/api", tags=["API"])
+app.include_router(synapse_router, prefix="/synapse", tags=["System"])
 
 @app.get("/")
 async def root():
@@ -40,4 +58,4 @@ async def root():
 
 if __name__ == "__main__":
     logger.info("Starting the application...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

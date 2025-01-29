@@ -10,26 +10,26 @@ indexing_directory = "/Users/dipak/CortexProjects/storage"
 
 class DiskStore:
     @staticmethod
-    def persist_index(index,indexing_source, file_name):
+    def persist_index(index,indexing_source, index_name):
         try:
-            index.storage_context.persist(f"{indexing_directory}/{indexing_source}/{file_name}")
-            logger.info(f"Index created and saved as {file_name}")
+            index.storage_context.persist(f"{indexing_directory}/{indexing_source}/{index_name}")
+            logger.info(f"Index created and saved as {index_name}")
         except Exception as e:
             logger.error(f"Error saving index: {e}")
-            raise
+            return False    
 
     @staticmethod
-    def load_index(indexing_source,file_name):
+    def load_index(indexing_source,index_name):
         try:
             loaded_storage = StorageContext.from_defaults(
-                persist_dir=f"{indexing_directory}/{indexing_source}/{file_name}"
+                persist_dir=f"{indexing_directory}/{indexing_source}/{index_name}"
             )
             loaded_index = load_index_from_storage(loaded_storage)
-            logger.info(f"Index loaded from storage: {file_name}")
+            logger.info(f"Index loaded from storage: {index_name}")
             return loaded_index
         except Exception as e:
             logger.error(f"Error loading index from storage: {e}")
-            raise
+            return False
 
 
 # Example usage
