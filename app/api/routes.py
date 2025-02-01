@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
 from pydantic import BaseModel
 from typing import Dict, Any
 from ..core.builder.index import Indexer
+from ..core.reasoner.resoning_engine import ReasoningEngine
 import logging
 
 # Configure logging
@@ -37,7 +38,7 @@ async def index_file(
         
         # Index the file
         logger.info(f"Starting indexing process for {file.filename}")
-        success = indexer.index(file, project_name)
+        success = await indexer.index(file, project_name)
         
         if success:
             logger.info(f"Successfully indexed file {file.filename} for project {project_name}")
@@ -59,3 +60,25 @@ async def index_file(
             detail=f"Error indexing file: {str(e)}"
         )
 
+class ChatRequest(BaseModel):
+    project_name: str
+    query: str
+
+@router.post("/chat")
+async def retrieve_file(
+    request: ChatRequest = Body(...),
+):
+    logger.info(f"Received chat request")
+    try:
+        project_name = request.project_name
+        query = request.query
+        logger.debug(f"Processing query for project '{project_name}': {query}")
+        
+        # Add your processing logic here
+        reasoning = ReasoningEngine(project_name=project_name, query=query)
+        response = reasoning.start_reasoning()
+        
+        return {"message": response}
+    except Exception as e:
+        logger.error(f"Error processing request: {e}")
+        return {"error": str(e)}

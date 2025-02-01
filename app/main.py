@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api import api_router
 from .synapse import synapse_router
+from .logging_config import reasoning_logger
 import logging
 import uvicorn
 import os
@@ -19,7 +20,7 @@ print(f"Log file path: {log_file_path}")  # Debug print
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(log_file_path, mode='a'),  # Append mode
@@ -28,6 +29,9 @@ logging.basicConfig(
     force=True
 )
 logger = logging.getLogger(__name__)
+
+# Export reasoning_logger for use in other modules
+__all__ = ["reasoning_logger"]
 
 app = FastAPI(
     title="Cortex API",
@@ -51,6 +55,7 @@ app.include_router(synapse_router, prefix="/synapse", tags=["System"])
 @app.get("/")
 async def root():
     logger.info("Root endpoint called")
+    reasoning_logger.info("Root endpoint called with reasoning logger")
     return {
         "message": "Welcome to Cortex API",
         "status": "operational"

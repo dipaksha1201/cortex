@@ -5,6 +5,8 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from typing import List
 from pydantic import BaseModel, Field
 
+from app.core.builder.preprocessors.basic import BasicPreprocessor
+
 class MultiVectorLangchain:
     def __init__(self, documents, doc_ids, file_name, model, id_key):
         self.documents = documents
@@ -15,9 +17,10 @@ class MultiVectorLangchain:
 
     def convert_to_langchain_docs(self):
         """Convert parsed documents to LangChain Document format."""
+        documents = BasicPreprocessor.split_docs_by_separator(self.documents)
         langchain_docs = [
             Document(page_content=doc.text, metadata={"source": self.file_name})
-            for doc in self.documents
+            for doc in documents
         ]
         return langchain_docs
 

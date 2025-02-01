@@ -1,6 +1,6 @@
-from ....initialization import gemini_pro_model
+from ....initialization import gemini_pro_model_langchain
 from ...interface.base_indexer import BaseIndexer
-from ...reasoner.retriever import MultiVectorRetrieverBuilder
+from ...common.multivector_retriever import MultiVectorRetrieverBuilder
 from ..preprocessors.multivector_langchain import MultiVectorLangchain
 import logging
 from uuid import uuid4
@@ -13,46 +13,54 @@ class VectorStoreIndexer(BaseIndexer):
     
     def __init__(self):
         self.retriever_builder = MultiVectorRetrieverBuilder()
-        self.model = gemini_pro_model  # Import this from your initialization module
+        self.model = gemini_pro_model_langchain  # Import this from your initialization module
 
     def index(self, file_name, index_name, documents):
         """Index documents using MultiVectorRetriever"""
+        logger.debug(f"Starting vector store indexing for file '{file_name}' with index '{index_name}'")
         try:
-            
             # Generate unique IDs for documents
+            logger.debug(f"Generating unique IDs for {len(documents)} documents")
             doc_ids = [str(uuid4()) for _ in documents]
             
             # Initialize MultiVectorLangchain processor
+            logger.debug("Initializing MultiVectorLangchain processor")
             processor = MultiVectorLangchain(
                 documents=documents,
                 doc_ids=doc_ids,
                 file_name=file_name,
-                model=self.model,  # You'll need to initialize this in __init__
+                model=self.model,
                 id_key="doc_id"
             )
+            retriever = self.retriever_builder.build(index_name)
             
             # Process documents to get chunks, summaries, and questions
+            logger.debug("Processing documents to generate chunks, summaries and questions")
             document_chunks, summary_docs, question_docs = processor.process_documents()
+            logger.debug(f"Generated {len(document_chunks)} chunks, {len(summary_docs)} summaries, {len(question_docs)} questions")
             
             # Combine all document types
+            logger.debug("Combining all document types")
             combined_docs = document_chunks + summary_docs + question_docs
             
             # Get retriever for the file
-            retriever = self.retriever_builder.build(index_name)
+            logger.debug(f"Building retriever for index '{index_name}'")
             
             # Add documents to vector store
+            logger.debug(f"Adding {len(combined_docs)} documents to vector store")
             retriever.vectorstore.add_documents(combined_docs)
             
             # Store original documents in docstore
+            logger.debug("Converting and storing original documents in docstore")
             langchain_docs = processor.convert_to_langchain_docs()
             retriever.docstore.mset(list(zip(doc_ids, langchain_docs)))
             
-            logger.info(f"Successfully indexed documents for {index_name}")
-            return retriever
+            logger.info(f"Successfully indexed {len(langchain_docs)} documents for '{index_name}'")
+            return True
             
         except Exception as e:
-            logger.error(f"Error in indexing: {e}")
-            raise
+            logger.error(f"Error indexing documents for '{index_name}': {str(e)}", exc_info=True)
+            return False
 
     def get_index_from_storage(self, index_name):
         """Get existing retriever from storage"""

@@ -4,10 +4,15 @@ from llama_index.core.indices.property_graph import (
     SimpleLLMPathExtractor,
 )
 from llama_index.core import PropertyGraphIndex
+from llama_index.core.node_parser import SimpleNodeParser
 from ..preprocessors import BasicPreprocessor
 import logging
 from ...storage import DiskStore
 from ...interface.base_indexer import BaseIndexer
+import asyncio
+import nest_asyncio
+nest_asyncio.apply()
+
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -15,35 +20,45 @@ logger = logging.getLogger(__name__)
 
 index_source = "knowledge_graph"
 class KnowledgeGraphIndexer(BaseIndexer):
+        
     def __init__(self):
         pass
 
     def index(self, index_name, documents):
+        logger.debug(f"Starting KG indexing for index_name: {index_name}")
         try:
+            logger.debug("Retrieving index from storage")
             index = self.get_index_from_storage(index_name)
+            logger.debug("Splitting documents by separator")
             sub_docs = BasicPreprocessor.split_docs_by_separator(documents)
+            logger.debug(f"Number of sub-documents created: {len(sub_docs)}")
             
             if index:
-                index.insert(sub_docs)
+                logger.info(f"Index found for '{index_name}'. Inserting sub-documents.")
+                self.insert_into_index(index, sub_docs)
+                logger.debug("Sub-documents inserted into existing index successfully.")
             else:
-                # Implement knowledge graph indexing logic here
+                logger.info(f"No existing index found for '{index_name}'. Creating new property graph index.")
+                # index = await self.create_property_graph_index(sub_docs, gemini_pro_model)
                 index = self.create_property_graph_index(sub_docs, gemini_pro_model)
+                logger.debug("New property graph index created successfully.")
 
-            DiskStore.persist_index(index,index_source, index_name)
+            logger.debug("Persisting index to disk storage")
+            DiskStore.persist_index(index, index_source, index_name)
+            logger.info(f"Index '{index_name}' persisted successfully.")
             return True
         except Exception as e:
-            logger.error(f"Error in indexing: {e}")
+            logger.error(f"Error in indexing for '{index_name}': {e}", exc_info=True)
             return False
 
-    def get_index_from_storage(self, index_name):    
-        try:
-            loaded_index = DiskStore.load_index(index_source,index_name)
-            return loaded_index
-        except Exception as e:
-            logger.error(f"Error loading index from storage: {e}")
-            return False
+    def insert_into_index(self, index, sub_docs):
+        node_parser = SimpleNodeParser()
+        nodes = node_parser.get_nodes_from_documents(sub_docs)
+        logger.debug(f"Nodes: {nodes}")
+        index.insert_nodes(nodes)
     
     def create_property_graph_index(self, sub_docs, llm):
+        logger.debug("Creating property graph index from documents")
         try:
             index = PropertyGraphIndex.from_documents(
                 sub_docs,
@@ -57,14 +72,22 @@ class KnowledgeGraphIndexer(BaseIndexer):
                 ],
                 show_progress=True,
             )
-            logger.info("Property graph index created")
+            logger.info("Property graph index created successfully")
             return index
         except Exception as e:
-            logger.error(f"Error creating property graph index: {e}")
+            logger.error(f"Error creating property graph index: {e}", exc_info=True)
             raise
 
-# Example usage
-# kg_indexer = KnowledgeGraphIndexer()
-# sub_docs = kg_indexer.split_docs_by_separator(documents)
-# index = kg_indexer.create_property_graph_index(sub_docs, gemini_llm)
-# loaded_index = kg_indexer.get_index_from_storage(True)
+    def get_index_from_storage(self, index_name):    
+        logger.debug(f"Loading index '{index_name}' from storage")
+        try:
+            loaded_index = DiskStore.load_index(index_source, index_name)
+            if loaded_index:
+                logger.info(f"Index '{index_name}' loaded successfully from storage.")
+            else:
+                logger.warning(f"Index '{index_name}' not found in storage.")
+            return loaded_index
+        except Exception as e:
+            logger.error(f"Error loading index '{index_name}' from storage: {e}", exc_info=True)
+            return False
+

@@ -3,7 +3,7 @@ from langchain_pinecone import PineconeVectorStore
 import logging
 from dotenv import load_dotenv
 import os   
-from ...initialization import gemini_embeddings_model
+from ...initialization import gemini_langchain_embeddings
 
 load_dotenv()
 
@@ -17,7 +17,10 @@ class PineconeStore:
         logger.info("Pinecone initialized")
 
     def get_index(self, index_name):
-        if index_name not in self.initialized_pinecone.list_indexes():
+        # Replace underscores with hyphens in index name
+        index_name = index_name.replace("_", "-")
+        indexes_list = self.initialized_pinecone.list_indexes()
+        if index_name not in [index["name"] for index in indexes_list]:
             self.initialized_pinecone.create_index(
                 name=index_name,
                 dimension=768, # Replace with your model dimensions
@@ -34,7 +37,7 @@ class PineconeStore:
             return self.initialized_pinecone.Index(index_name)
 
     def get_vector_store(self, index_name):
-        return PineconeVectorStore(index=self.get_index(index_name), embedding=gemini_embeddings_model)
+        return PineconeVectorStore(index=self.get_index(index_name), embedding=gemini_langchain_embeddings)
 
 # Example usage
 # pinecone_store = PineconeStore(api_key='your_api_key', environment='us-west1')
