@@ -1,4 +1,5 @@
-from ....initialization import gemini_pro_model_langchain
+from app.core.builder.preprocessors.document_prepro import generate_document_features
+from ....initialization import gemini_pro_model_langchain, gemini_flash_model_langchain
 from ...interface.base_indexer import BaseIndexer
 from ...common.multivector_retriever import MultiVectorRetrieverBuilder
 from ..preprocessors.multivector_langchain import MultiVectorLangchain
@@ -39,6 +40,7 @@ class VectorStoreIndexer(BaseIndexer):
             document_chunks, summary_docs, question_docs = processor.process_documents()
             logger.debug(f"Generated {len(document_chunks)} chunks, {len(summary_docs)} summaries, {len(question_docs)} questions")
             
+            
             # Combine all document types
             logger.debug("Combining all document types")
             combined_docs = document_chunks + summary_docs + question_docs
@@ -55,8 +57,10 @@ class VectorStoreIndexer(BaseIndexer):
             langchain_docs = processor.convert_to_langchain_docs()
             retriever.docstore.mset(list(zip(doc_ids, langchain_docs)))
             
+            document = generate_document_features(summary_docs, gemini_flash_model_langchain)
+            
             logger.info(f"Successfully indexed {len(langchain_docs)} documents for '{index_name}'")
-            return True
+            return True , document
             
         except Exception as e:
             logger.error(f"Error indexing documents for '{index_name}': {str(e)}", exc_info=True)

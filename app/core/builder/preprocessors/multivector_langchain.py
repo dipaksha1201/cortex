@@ -41,7 +41,7 @@ class MultiVectorLangchain:
         """Generate summaries for the LangChain documents."""
         chain = (
             {"doc": lambda x: x.page_content}
-            | ChatPromptTemplate.from_template("Summarize the following document:\n\n{doc}")
+            | ChatPromptTemplate.from_template("Summarize the following document and make sure to capture each important detail from the document which will be usefull for you to do a vetore search and retrieve as this will be stored for performing RAG:\n\n{doc}")
             | self.model
             | StrOutputParser()
         )

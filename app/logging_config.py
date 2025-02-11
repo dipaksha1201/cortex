@@ -32,3 +32,10 @@ memory_logger = logging.getLogger("memory")
 memory_logger.setLevel(logging.INFO)
 memory_logger.addHandler(logging.FileHandler(memory_log_file_path, mode='a'))
 memory_logger.addHandler(logging.StreamHandler())
+
+indexing_log_file_path = os.path.join(log_dir, "indexing.log")
+# Configure indexing logger
+indexing_logger = logging.getLogger("indexing")
+indexing_logger.setLevel(logging.INFO)
+indexing_logger.addHandler(logging.FileHandler(indexing_log_file_path, mode='a'))
+indexing_logger.addHandler(logging.StreamHandler())

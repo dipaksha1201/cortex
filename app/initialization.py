@@ -1,6 +1,6 @@
 import logging
 from pydantic import BaseModel  # Updated import
-from .config import gemini_pro_model, gemini_embeddings_model, gemini_pro_model_langchain
+from .config import gemini_pro_model, gemini_embeddings_model, gemini_pro_model_langchain, gemini_flash_model
 from llama_index.llms.gemini import Gemini
 from llama_index.embeddings.gemini import GeminiEmbedding
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -21,8 +21,13 @@ class LLMInitializer:
     def initialize_langchain_llm(self , type):
         if type == "gemini_pro":
             # Initialize the LLM model using gemini_pro_model
-            logger.info(f"Initializing LLM model: {gemini_pro_model}")
+            logger.info(f"Initializing Gemini Pro model: {gemini_pro_model}")
             llm = ChatGoogleGenerativeAI(model=gemini_pro_model_langchain, google_api_key = os.getenv("GEMINI_API_KEY_PROD"))
+            return llm
+        elif type == "gemini_flash":
+            # Initialize the LLM model using gemini_pro_model
+            logger.info(f"Initializing Gemini Flash model: {gemini_flash_model}")
+            llm = ChatGoogleGenerativeAI(model=gemini_flash_model, google_api_key = os.getenv("GEMINI_API_KEY_PROD"))
             return llm
         
     def initialize_llamaindex_llm(self , type):
@@ -61,4 +66,5 @@ gemini_pro_model = llm_initializer.initialize_llamaindex_llm("gemini_pro")
 google_client = llm_initializer.initialize_google_client()
 gemini_embeddings_model = llm_initializer.initialize_llamaindex_embedding_model()
 gemini_pro_model_langchain = llm_initializer.initialize_langchain_llm("gemini_pro")
+gemini_flash_model_langchain = llm_initializer.initialize_langchain_llm("gemini_flash")
 gemini_langchain_embeddings = llm_initializer.initialize_langchain_embedding_model()

@@ -21,3 +21,13 @@ env/
 # Ignore temporary files
 *.tmp
 *.temp
+
+.env
+checkpoints.sqlite
+.gitignore
+checkpoints.sqlite-wal
+.gitignore
+conversation.sqlite
+logs/app.log
+checkpoints.sqlite-shm
+logs/app.log

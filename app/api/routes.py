@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
 from pydantic import BaseModel
 from typing import Dict, Any
+
+from app.data_layer.services.document_service import DocumentService
 from ..core.builder.index import Indexer
 from ..core.reasoner.resoning_engine import ReasoningEngine
 import logging
@@ -13,7 +15,7 @@ router = APIRouter()
 
 @router.post("/index")
 async def index_file(
-    project_name: str = Form(...),  # Accept project_name from form-data
+    user_name: str,  # Accept project_name from form-data
     file: UploadFile = File(...)
 ):
     """
@@ -23,14 +25,14 @@ async def index_file(
         project_name: Name of the project (required)
         file: The file to be indexed
     """
-    logger.info(f"Received indexing request for project: {project_name}, file: {file.filename}")
+    logger.info(f"Received indexing request for user: {user_name}, file: {file.filename}")
     
     try:
-        if not project_name.strip():
-            logger.warning("Empty project name provided")
+        if not user_name.strip():
+            logger.warning("Empty user name provided")
             raise HTTPException(
                 status_code=400,
-                detail="project_name is required"
+                detail="user_name is required"
             )
             
         # Initialize indexer
@@ -39,13 +41,13 @@ async def index_file(
         
         # Index the file
         logger.info(f"Starting indexing process for {file.filename}")
-        success = await indexer.index(file, project_name)
+        success = await indexer.index(file, user_name)
         
         if success:
-            logger.info(f"Successfully indexed file {file.filename} for project {project_name}")
+            logger.info(f"Successfully indexed file {file.filename} for user {user_name}")
             return {
                 "status": "success",
-                "message": f"File {file.filename} indexed successfully for project {project_name}"
+                "message": f"File {file.filename} indexed successfully for user {user_name}"
             }
         else:
             logger.error(f"Failed to index file {file.filename}")
@@ -61,11 +63,25 @@ async def index_file(
             detail=f"Error indexing file: {str(e)}"
         )
 
+@router.get("/documents/all")
+async def get_all_documents(user_id: str):
+    try:
+        logger.info("Retrieving all documents")
+        service = DocumentService()
+        documents = service.get_user_documents(user_id=user_id)
+        return jsonable_encoder(documents)
+    except Exception as e:
+        logger.error(f"Error retrieving documents: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving documents: {str(e)}"
+        )
+
 class ChatRequest(BaseModel):
     username: str
     query: str
 
-@router.post("/chat")
+@router.post("/reason")
 async def retrieve_file(
     request: ChatRequest = Body(...),
 ):

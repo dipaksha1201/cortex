@@ -5,7 +5,7 @@ from functools import lru_cache
 gemini_pro_model = "models/gemini-pro"
 gemini_embeddings_model = "models/embedding-001"
 gemini_thinking_model = "gemini-2.0-flash-thinking-exp"
-
+gemini_flash_model = "gemini-2.0-flash"
 gemini_pro_model_langchain = "gemini-1.5-pro"
 
 class Settings(BaseSettings):
