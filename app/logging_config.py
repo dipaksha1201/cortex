@@ -15,3 +15,20 @@ reasoning_logger = logging.getLogger("reasoning_logger")
 reasoning_logger.setLevel(logging.INFO)
 reasoning_logger.addHandler(logging.FileHandler(resoning_log_file_path, mode='a'))
 reasoning_logger.addHandler(logging.StreamHandler())
+
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+log_dir = os.path.join(project_root, "logs")
+agent_log_file_path = os.path.join(log_dir, "agent.log")
+
+# Configure agent logger
+agent_logger = logging.getLogger("agent_logger")
+agent_logger.setLevel(logging.INFO)
+agent_logger.addHandler(logging.FileHandler(agent_log_file_path, mode='a'))
+agent_logger.addHandler(logging.StreamHandler())
+
+memory_log_file_path = os.path.join(log_dir, "memory.log")
+# Configure memory logger
+memory_logger = logging.getLogger("memory")
+memory_logger.setLevel(logging.INFO)
+memory_logger.addHandler(logging.FileHandler(memory_log_file_path, mode='a'))
+memory_logger.addHandler(logging.StreamHandler())

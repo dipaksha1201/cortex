@@ -3,7 +3,7 @@ from langchain_pinecone import PineconeVectorStore
 import logging
 from dotenv import load_dotenv
 import os   
-from ...initialization import gemini_langchain_embeddings
+from app.initialization import gemini_langchain_embeddings
 
 load_dotenv()
 

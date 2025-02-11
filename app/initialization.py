@@ -1,4 +1,5 @@
 import logging
+from pydantic import BaseModel  # Updated import
 from .config import gemini_pro_model, gemini_embeddings_model, gemini_pro_model_langchain
 from llama_index.llms.gemini import Gemini
 from llama_index.embeddings.gemini import GeminiEmbedding

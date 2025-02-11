@@ -1,6 +1,7 @@
 import logging
-from llama_index.core import load_index_from_storage
+from llama_index.core import load_index_from_storage , ServiceContext
 from llama_index.core import StorageContext
+from app.initialization import gemini_embeddings_model
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +25,7 @@ class DiskStore:
             loaded_storage = StorageContext.from_defaults(
                 persist_dir=f"{indexing_directory}/{indexing_source}/{index_name}"
             )
+            # service_context = ServiceContext.from_defaults(embed_model=gemini_embeddings_model)
             loaded_index = load_index_from_storage(loaded_storage)
             logger.info(f"Index loaded from storage: {index_name}")
             return loaded_index

@@ -66,7 +66,7 @@ class VectorRetriever:
             tuple: (List of source nodes, Combined text string)
         """
         try:
-            logger.debug(f"Retrieving results for query: {query}")
+            logger.info(f"Retrieving results for query: {query}")
             source_nodes = self.retriever.vectorstore.similarity_search_with_score(query , k = max_results)
             filtered_docs = self.retrieve_with_threshold(source_nodes)
             combined_text = self._process_source_nodes(filtered_docs)

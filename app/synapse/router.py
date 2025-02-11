@@ -1,6 +1,8 @@
 from fastapi import APIRouter
 from typing import Dict, Any
 
+from app.data_layer.db_config import MongoDBConfig
+
 router = APIRouter()
 
 @router.get("/health")
@@ -21,9 +23,13 @@ async def system_info() -> Dict[str, Any]:
     """
     Get system information and capabilities
     """
+    mongo = MongoDBConfig()
+    client = mongo.connect()
+    collections = client.list_collection_names()
     return {
         "name": "Cortex",
         "version": "1.0.0",
+        "collections": collections,
         "capabilities": [
             "data_processing",
             "neural_analysis",

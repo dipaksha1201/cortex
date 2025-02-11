@@ -1,22 +1,24 @@
 from typing import List
-from app.core.interface.reasoning_classes import SubQueryContext , ReasoningStep
+from app.core.interface.reasoning_classes import SubQueryContext , ReasoningStep, ThinkingOutput
 from app.core.reasoner.query_engine import QueryEngine , SubQueryResult
 from app.core.reasoner.retrievers.vector_retriever import VectorRetriever
 from app.core.reasoner.retrievers.knowledge_graph_retriever import KnowledgeGraphRetriever
 from .composers.composer import Composer
 from .composers.thinking_composer import ThinkingComposer
 import logging
+import json
 from app.logging_config import reasoning_logger
 logger = logging.getLogger(__name__)
 
-subqueries = [SubQueryResult(sub_query='What are the unique characteristics of Large Language Models (LLMs)?', graph_query='Large Language Models, Characteristics'), SubQueryResult(sub_query='What factors have contributed to the success of LLMs?', graph_query='Factors, Success, LLMs'), SubQueryResult(sub_query='Are the unique characteristics of LLMs the sole reason for their success?', graph_query='LLMs, Unique_characteristics, Success')]
+# subqueries = [SubQueryResult(sub_query='What are the unique characteristics of Large Language Models (LLMs)?', graph_query='Large Language Models, Characteristics'), SubQueryResult(sub_query='What factors have contributed to the success of LLMs?', graph_query='Factors, Success, LLMs'), SubQueryResult(sub_query='Are the unique characteristics of LLMs the sole reason for their success?', graph_query='LLMs, Unique_characteristics, Success')]
+
 
 class ReasoningEngine:
     
-    def __init__(self, project_name: str, query: str):
-        self.project_name = project_name
+    def __init__(self, username: str, query: str):
+        self.username = username
         self.query = query
-        reasoning_logger.info("Reasoning Engine initialized for project: %s", project_name)
+        reasoning_logger.info("Reasoning Engine initialized for project: %s", username)
         reasoning_logger.info("Query provided: %s", query)
 
     def generate_reasoning(self) -> str:
@@ -70,13 +72,21 @@ class ReasoningEngine:
         final_answer = composer.think(self.query ,reasoning_steps)
         return final_answer    
     
+    def compose_table(self, final_answer: str) -> str:
+        logger.info("Composing table for final answer: ")
+        composer = Composer()
+        table = composer.get_table_from_output(final_answer)
+        reasoning_logger.info("Table composed: %s", table)
+        return table
+    
     def start_reasoning(self):
-        logger.info("Starting process_reasoning for project: %s", self.project_name)
+        logger.info("Starting process_reasoning for project: %s", self.username)
         subqueries = self.generate_reasoning()
-        retrieved_results = self.send_subqueries_to_retrievers(subqueries, self.project_name)
+        retrieved_results = self.send_subqueries_to_retrievers(subqueries, self.username)
         reasoning_steps = self.compose_subqueries(retrieved_results)
         final_answer = self.compose_answer(reasoning_steps)
         reasoning_logger.info("Final answer composed: %s", final_answer)
-        logger.info("Process_reasoning completed for project: %s", self.project_name)
-        return final_answer
+        output_table = self.compose_table(final_answer)
+        logger.info("Process_reasoning completed for project: %s", self.username)
+        return ThinkingOutput(reasoning=reasoning_steps, final_answer=final_answer, table=output_table)
 

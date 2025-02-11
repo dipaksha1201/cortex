@@ -1,21 +1,5 @@
-from typing import Any
-
-class ThinkingOuput:
-    def __init__(self, thoughts: str, thinking_output: str):
-        self.thinking_output = thinking_output
-        self.thoughts = thoughts
-
-    def __str__(self):
-        return self.thinking_output
-
-    def __repr__(self):
-        return self.thinking_output
-
-    def get_thoughts(self):
-        return self.thoughts
-
-    def get_output(self):
-        return self.thinking_output
+from pydantic import BaseModel
+from typing import Any, List
 
 class SubQueryContext:
     def __init__(self, subquery: str, graph_query: str, vector_context: Any, knowledge_graph_context: Any):
@@ -24,15 +8,13 @@ class SubQueryContext:
         self.vector_context = vector_context
         self.knowledge_graph_context = knowledge_graph_context
 
-class ReasoningStep:
-    def __init__(self, query: str, properties: str, context: Any):
-        self.query = query
-        self.properties = properties
-        self.context = context
-    
-    def __str__(self):
-        return f"Query: {self.query}, Properties: {self.properties}, Context: {self.context}"
+class ReasoningStep(BaseModel):
+    query: str
+    properties: str
+    context: Any
 
-    def __repr__(self):
-        return self.__str__()
+class ThinkingOutput(BaseModel):
+    reasoning: List[ReasoningStep]
+    final_answer: str
+    table: List[dict]
   

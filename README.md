@@ -35,7 +35,7 @@ pip install -r requirements.txt
 
 Start the server with:
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --loop asyncio 
 ```
 
 The API will be available at http://localhost:8000
@@ -50,3 +50,19 @@ Once the server is running, you can access:
 
 - **nucleus**: Core system components and configuration
 - **synapse**: API routes and controllers
+
+{
+    "reasoning": [
+        {
+            "query": "example_query",
+            "properties": "example_properties",
+            "context": "example_context"
+        },
+        {
+            "query": "another_query",
+            "properties": "another_properties",
+            "context": "another_context"
+        }
+    ],
+    "final_answer": "example_final_answer"
+}

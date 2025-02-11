@@ -52,7 +52,7 @@ class KnowledgeGraphRetriever:
             List of relevant nodes/documents from the knowledge graph
         """
         try:
-            logger.debug(f"Retrieving results for query: {query}")
+            logger.info(f"Retrieving results for query from KG retriever: {query}")
             sub_retrievers = [
                 VectorContextRetriever(self.index.property_graph_store, ...),
                 LLMSynonymRetriever(self.index.property_graph_store, ...),

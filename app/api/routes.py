@@ -4,6 +4,7 @@ from typing import Dict, Any
 from ..core.builder.index import Indexer
 from ..core.reasoner.resoning_engine import ReasoningEngine
 import logging
+from fastapi.encoders import jsonable_encoder
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -61,7 +62,7 @@ async def index_file(
         )
 
 class ChatRequest(BaseModel):
-    project_name: str
+    username: str
     query: str
 
 @router.post("/chat")
@@ -70,15 +71,15 @@ async def retrieve_file(
 ):
     logger.info(f"Received chat request")
     try:
-        project_name = request.project_name
+        username = request.username
         query = request.query
-        logger.debug(f"Processing query for project '{project_name}': {query}")
+        logger.debug(f"Processing query for project '{username}': {query}")
         
         # Add your processing logic here
-        reasoning = ReasoningEngine(project_name=project_name, query=query)
+        reasoning = ReasoningEngine(username=username, query=query)
         response = reasoning.start_reasoning()
         
-        return {"message": response}
+        return jsonable_encoder(response)
     except Exception as e:
-        logger.error(f"Error processing request: {e}")
+        logger.error(f"Error processing reasoning api request: {e}")
         return {"error": str(e)}

@@ -1,8 +1,8 @@
 from typing import Dict, Any
 from langchain.retrievers import MultiVectorRetriever
 from langchain.storage import LocalFileStore
-from ..storage.pinecone import PineconeStore
-from ..storage.disk_store import indexing_directory
+from app.storage.pinecone import PineconeStore
+from app.storage.disk_store import indexing_directory
 import os
 import logging
 

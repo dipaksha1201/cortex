@@ -16,3 +16,4 @@ google-generativeai
 llama-index-embeddings-gemini
 llama-index-llms-ollama
 llama-index-embeddings-ollama
+pymongo

@@ -1,7 +1,7 @@
 from ..preprocessors import BasicPreprocessor
 from llama_index.core.node_parser import SimpleNodeParser
 from llama_index.core import Document, SummaryIndex
-from ...storage import DiskStore
+from app.storage import DiskStore
 from ...interface.base_indexer import BaseIndexer
 
 index_source = "sparse"

@@ -1,7 +1,8 @@
 from typing import List
-from app.initialization import google_client
+from app.initialization import google_client, gemini_pro_model_langchain
 from langchain.prompts import PromptTemplate
-from app.core.interface.reasoning_classes import ReasoningStep , ThinkingOuput
+from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
+from app.core.interface.reasoning_classes import ReasoningStep 
 import logging
 
 class ThinkingComposer:
@@ -20,13 +21,16 @@ class ThinkingComposer:
         1. Think and plan about the original query and the subqueries.
         2. Combine and synthesize the insights from each subquery.
         3. Draft a conclusive answer that addresses the "Original Query" thoroughly.
-        4. Be clear and concise in your final answer.
+        4. Be detailed, accurate, and informative in your response.
+        5. Return a properly formatted markdown string as your final answer.
 
+        Do not include any extra text or markdown;
         Final Answer:
         """
 
     def __init__(self):
-        self.thinking_client = google_client
+        # self.thinking_client = google_client
+        self.thinking_client = gemini_pro_model_langchain
         self.reasoning_instructions = PromptTemplate(
             input_variables=["original_query", "formatted_reasoning_steps"],
             template=self.QUERY_COMPOSER_TEMPLATE
@@ -58,15 +62,16 @@ class ThinkingComposer:
         )
 
     def generate_thinking_output(self, context: str):
-        config = {'thinking_config': {'include_thoughts': True}}
-        response = self.thinking_client.models.generate_content(
-            model='gemini-2.0-flash-thinking-exp',
-            contents=context,
-            config=config
-        )
+        # config = {'thinking_config': {'include_thoughts': True}}
+        # response = self.thinking_client.models.generate_content(
+        #     model='gemini-2.0-flash-thinking-exp',
+        #     contents=context,
+        #     config=config
+        # )
+        response = self.thinking_client.invoke(context)
         return response
         
-    def think(self, original_query: str, reasoning_steps: List[ReasoningStep]) -> ThinkingOuput:
+    def think(self, original_query: str, reasoning_steps: List[ReasoningStep]):
         logging.info("Generating thinking context for the original query.")
         context = self.generate_thinking_context(original_query, reasoning_steps)
         
@@ -76,7 +81,8 @@ class ThinkingComposer:
         
         logging.info("Generated output: %s", output)
         # thoughts = output.candidates[0].content.parts[0].text
-        thinking_output = output.candidates[0].content.parts[0].text
+        # thinking_output = output.candidates[0].content.parts[0].text
+        thinking_output = output.content
         
         # logging.info("Extracted thoughts: %s", thoughts)
         # logging.info("Extracted thinking output: %s", thinking_output)
