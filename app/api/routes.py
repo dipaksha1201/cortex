@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
 from pydantic import BaseModel
 from typing import Dict, Any
 
-from app.data_layer.services.document_service import DocumentService
+from app.data_layer.services import DocumentService , MemoryService
 from ..core.builder.index import Indexer
 from ..core.reasoner.resoning_engine import ReasoningEngine
 import logging
@@ -75,6 +75,20 @@ async def get_all_documents(user_id: str):
         raise HTTPException(
             status_code=500,
             detail=f"Error retrieving documents: {str(e)}"
+        )
+
+@router.get("/memories/all")
+async def get_all_memories(user_id: str):
+    try:
+        logger.info("Retrieving all memories")
+        service = MemoryService()
+        documents = service.get_user_memories(user_id=user_id)
+        return jsonable_encoder(documents)
+    except Exception as e:
+        logger.error(f"Error retrieving memories: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving memories: {str(e)}"
         )
 
 class ChatRequest(BaseModel):

@@ -1,9 +1,6 @@
 import logging
-from typing import Dict, List, Optional
-from datetime import datetime
-from pymongo import ReturnDocument
+from typing import List
 from app.data_layer.db_config import MongoDBConfig
-from bson import ObjectId
 from app.data_layer.models.document import Document
 
 # Configure a logger for this module.

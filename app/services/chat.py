@@ -2,12 +2,13 @@ import logging
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from app.cortex._schemas import GraphConfig
+from app.data_layer.models.memory import Memory
 from app.data_layer.services.conversation_service import ConversationService
+from app.data_layer.services.memory_service import MemoryService
 from ..core.reasoner.resoning_engine import ReasoningEngine
 from app.data_layer.models.conversation import Message
 from app.cortex.brain import cortex
 from app.cortex.observer import observer
-from app.logging_config import agent_logger
 from app.logging_config import memory_logger
 
 class Chat: 
@@ -45,23 +46,32 @@ class Chat:
         )
         cortex_state = cortex.get_state(config)
         state = cortex_state.values
-        # state['messages'] = state['messages'][:4]
-        # state['messages'].append(("human", payload["content"]))
-        # memory_logger.info(f"Cortex state messages:\n {state['messages']}")
-        # state.pop("thread_id", None) 
-        # response = await observer.ainvoke({
-        #         "messages": state["messages"],
-        #     }, {
-        #      "configurable": GraphConfig(
-        #             user_id=payload["user_id"],
-        #             thread_id=payload["conversation_id"],
-        #         ),},
-        #      stream_mode="values", 
-        # )
-        
-        # Run reasoning engine and process reasoning message
-        # agent_logger.info("response: %s", response)
         id = str(conversation.id)
+        memory_service = MemoryService()
+        memory = memory_service.get_memory_for_conversation(id)
+        messages = state["messages"]
+
+        if memory: 
+            if len(messages) - memory.last_update_count > 2:
+                memory_logger.info(f"Updating memory for conversation {id}")
+                updated_summary , _ = observer(messages[-3:], memory.summary, payload["user_id"], id)
+                memory.summary = updated_summary
+                memory.last_update_count = memory.last_update_count + 3
+                memory_service.insert_memory(memory, False)
+        else:
+            if len(messages) > 2:
+                memory_logger.info(f"Creating new memory for conversation {id}")
+                updated_summary , title = observer(messages, "", payload["user_id"], id)
+                memory = Memory(
+                    conversation_id=id,
+                    user_id=payload["user_id"],
+                    summary=updated_summary,
+                    title=title,
+                    highlights="",
+                    last_update_count=3,
+                )
+                memory_service.insert_memory(memory, True)
+       
         return state["output"] , id
 
     @staticmethod

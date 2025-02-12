@@ -1,5 +1,4 @@
-import json
-from typing import Tuple
+from pydantic import BaseModel
 import app.cortex._constants as constants
 import app.cortex._schemas as schemas
 import app.cortex._settings as settings
@@ -11,31 +10,14 @@ from langchain_core.runnables.config import (
 )
 import tiktoken
 from langchain_core.messages.utils import get_buffer_string
-
-def fetch_core_memories(user_id: str) -> Tuple[str, list[str]]:
-    """Fetch core memories for a specific user.
-
-    Args:
-        user_id (str): The ID of the user.
-
-    Returns:
-        Tuple[str, list[str]]: The path and list of core memories.
-    """
-    path = constants.PATCH_PATH.format(user_id=user_id)
-    response = utils.get_index().fetch(
-        ids=[path], namespace=settings.SETTINGS.pinecone_namespace
-    )
-    memories = []
-    if vectors := response.get("vectors"):
-        document = vectors[path]
-        payload = document["metadata"][constants.PAYLOAD_KEY]
-        memories = json.loads(payload)["memories"]
-    return path, memories
-
 from langchain_core.tools import tool
 
-@tool
-def search_memory(query: str, top_k: int = 5) -> list[str]:
+class MemoryUpdate(BaseModel):
+    updated_summary: str
+    recall_memory: str
+    title:str
+
+def search_memory(user_id:str ,query: str, top_k: int = 5) -> list[str]:
     """Search for memories in the database based on semantic similarity.
 
     Args:
@@ -45,14 +27,13 @@ def search_memory(query: str, top_k: int = 5) -> list[str]:
     Returns:
         list[str]: A list of relevant memories.
     """
-    config = ensure_config()
-    configurable = utils.ensure_configurable(config)
+
     embeddings = utils.get_embeddings()
     vector = embeddings.embed_query(query)
     response = utils.get_index().query(
         vector=vector,
         filter={
-            "user_id": {"$eq": configurable["user_id"]},
+            "user_id": {"$eq": user_id},
             constants.TYPE_KEY: {"$eq": "recall"},
         },
         namespace=settings.SETTINGS.pinecone_namespace,
@@ -64,7 +45,6 @@ def search_memory(query: str, top_k: int = 5) -> list[str]:
         memories = [m["metadata"][constants.PAYLOAD_KEY] for m in matches]
     return memories
 
-
 def load_memories(state: schemas.State, config: RunnableConfig) -> schemas.State:
     """Load core and recall memories for the current conversation.
 
@@ -75,6 +55,7 @@ def load_memories(state: schemas.State, config: RunnableConfig) -> schemas.State
     Returns:
         schemas.State: The updated state with loaded memories.
     """
+    config = ensure_config()
     configurable = utils.ensure_configurable(config)
     user_id = configurable["user_id"]
     tokenizer = tiktoken.encoding_for_model("gpt-4o")
@@ -83,13 +64,11 @@ def load_memories(state: schemas.State, config: RunnableConfig) -> schemas.State
 
     with get_executor_for_config(config) as executor:
         futures = [
-            executor.submit(fetch_core_memories, user_id),
-            executor.submit(search_memory.invoke, convo_str),
+            executor.submit(search_memory.invoke, user_id,convo_str),
         ]
-        _, core_memories = futures[0].result()
-        recall_memories = futures[1].result()
+        
+        recall_memories = futures[0].result()
     return {
-        "core_memories": core_memories,
         "recall_memories": recall_memories,
     }
 
