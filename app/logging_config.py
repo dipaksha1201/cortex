@@ -39,3 +39,10 @@ indexing_logger = logging.getLogger("indexing")
 indexing_logger.setLevel(logging.INFO)
 indexing_logger.addHandler(logging.FileHandler(indexing_log_file_path, mode='a'))
 indexing_logger.addHandler(logging.StreamHandler())
+
+retriever_log_file_path = os.path.join(log_dir, "retriever.log")
+# Configure retriever logger
+retriever_logger = logging.getLogger("retriever")
+retriever_logger.setLevel(logging.INFO)
+retriever_logger.addHandler(logging.FileHandler(retriever_log_file_path, mode='a'))
+retriever_logger.addHandler(logging.StreamHandler())

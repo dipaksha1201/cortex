@@ -1,12 +1,14 @@
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Body
 from pydantic import BaseModel
 from typing import Dict, Any
+from fastapi.responses import StreamingResponse
 
 from app.data_layer.services import DocumentService , MemoryService
 from ..core.builder.index import Indexer
 from ..core.reasoner.resoning_engine import ReasoningEngine
 import logging
 from fastapi.encoders import jsonable_encoder
+from app.core.reasoner.retrievers.sparse_retriever import SparseRetriever
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -113,3 +115,34 @@ async def retrieve_file(
     except Exception as e:
         logger.error(f"Error processing reasoning api request: {e}")
         return {"error": str(e)}
+
+class SparseRetrievalRequest(BaseModel):
+    query: str
+    index_name: str
+    score_threshold: float = 0.45
+
+class SparseRetrievalResponse(BaseModel):
+    results: list
+    combined_text: str
+
+@router.post("/sparse-retrieve")
+async def test_sparse_retriever(request: SparseRetrievalRequest):
+    """Test endpoint for sparse retriever"""
+    try:
+        retriever = SparseRetriever(request.index_name)
+        nodes, text = retriever.retrieve(
+            request.query, 
+            score_threshold=request.score_threshold
+        )
+        return {
+            "results": [n.dict() for n in nodes],
+            "combined_text": text
+        }
+        # response = retriever.query_index(request.query)
+        # return {"response": response}
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Sparse retrieval failed: {str(e)}"
+        )
