@@ -28,43 +28,28 @@ async def index_file(
         file: The file to be indexed
     """
     logger.info(f"Received indexing request for user: {user_name}, file: {file.filename}")
+     
+    # Initialize indexer
+    logger.debug("Initializing indexer")
+    indexer = Indexer()
     
-    try:
-        if not user_name.strip():
-            logger.warning("Empty user name provided")
-            raise HTTPException(
-                status_code=400,
-                detail="user_name is required"
-            )
-            
-        # Initialize indexer
-        logger.debug("Initializing indexer")
-        indexer = Indexer()
-        
-        # Index the file
-        logger.info(f"Starting indexing process for {file.filename}")
-        success = await indexer.index(file, user_name)
-        
-        if success:
-            logger.info(f"Successfully indexed file {file.filename} for user {user_name}")
-            return {
-                "status": "success",
-                "message": f"File {file.filename} indexed successfully for user {user_name}"
-            }
-        else:
-            logger.error(f"Failed to index file {file.filename}")
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to index file"
-            )
-            
-    except Exception as e:
-        logger.error(f"Error indexing file {file.filename}: {str(e)}", exc_info=True)
+    # Index the file
+    logger.info(f"Starting indexing process for {file.filename}")
+    success = await indexer.index(file, user_name)
+    
+    if success:
+        logger.info(f"Successfully indexed file {file.filename} for user {user_name}")
+        return {
+            "status": "success",
+            "message": f"File {file.filename} indexed successfully for user {user_name}"
+        }
+    else:
+        logger.error(f"Failed to index file {file.filename}")
         raise HTTPException(
             status_code=500,
-            detail=f"Error indexing file: {str(e)}"
+            detail="Failed to index file"
         )
-
+            
 @router.get("/documents/all")
 async def get_all_documents(user_id: str):
     try:

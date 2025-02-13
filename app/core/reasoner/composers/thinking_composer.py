@@ -1,10 +1,24 @@
 from typing import List
 from app.initialization import google_client, gemini_pro_model_langchain
 from langchain.prompts import PromptTemplate
-from langchain.prompts import ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate
 from app.core.interface.reasoning_classes import ReasoningStep 
 import logging
 
+def format_reasoning_steps(reasoning_steps: List[ReasoningStep]) -> str:
+        """
+        Utility to convert a list of ReasoningStep objects into a formatted string.
+        """
+        steps_str = []
+        for i, step in enumerate(reasoning_steps, start=1):
+            step_info = (
+                f"Subquery order {i}:\n"
+                f"Subquery: {step.query}\n"
+                f"Properties: {step.properties}\n"
+                f"Context: {step.context}\n"
+            )
+            steps_str.append(step_info)
+        return "\n".join(steps_str)
+    
 class ThinkingComposer:
     
     QUERY_COMPOSER_TEMPLATE = """
@@ -35,27 +49,12 @@ class ThinkingComposer:
             input_variables=["original_query", "formatted_reasoning_steps"],
             template=self.QUERY_COMPOSER_TEMPLATE
         )
-        
-    def format_reasoning_steps(self, reasoning_steps: List[ReasoningStep]) -> str:
-        """
-        Utility to convert a list of ReasoningStep objects into a formatted string.
-        """
-        steps_str = []
-        for i, step in enumerate(reasoning_steps, start=1):
-            step_info = (
-                f"Subquery order {i}:\n"
-                f"Subquery: {step.query}\n"
-                f"Properties: {step.properties}\n"
-                f"Context: {step.context}\n"
-            )
-            steps_str.append(step_info)
-        return "\n".join(steps_str)
     
     def generate_thinking_context(self, original_query: str, reasoning_steps: List[ReasoningStep]) -> str:
         """
         Use the PromptTemplate to build a final prompt string.
         """
-        formatted_steps = self.format_reasoning_steps(reasoning_steps)
+        formatted_steps = format_reasoning_steps(reasoning_steps)
         return self.reasoning_instructions.format(
             original_query=original_query,
             formatted_reasoning_steps=formatted_steps

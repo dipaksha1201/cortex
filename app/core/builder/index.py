@@ -4,6 +4,8 @@ from .parser import Parser
 from .indexer import KnowledgeGraphIndexer, VectorStoreIndexer
 from app.logging_config import indexing_logger as logger
 from app.core.builder.indexer.sparse_indexer import SparseIndexer
+import asyncio
+from typing import Dict, Any, Tuple, Union
 
 class Indexer:
     def __init__(self):
@@ -12,6 +14,34 @@ class Indexer:
         self.vector_store_indexer = VectorStoreIndexer()
         self.sparse_indexer = SparseIndexer()
         # self.analytical_indexer = AnalyticalIndexer()
+
+    async def _run_kg_indexer(self, index_name, documents) -> Tuple[str, Union[bool, Exception]]:
+        logger.info(f"Running knowledge graph indexer with index: {index_name}")
+        try:
+            result = await asyncio.to_thread(self.knowledge_graph_indexer.index, index_name, documents)
+            return "kg", result
+        except Exception as e:
+            logger.error(f"Error in knowledge graph indexer: {str(e)}")
+            return "kg", e
+
+    async def _run_sparse_indexer(self, index_name, documents) -> Tuple[str, Union[bool, Exception]]:
+        logger.info(f"Running sparse indexer with index: {index_name}")
+        try:
+            loop = asyncio.get_event_loop()
+            result = await loop.run_in_executor(None, self.sparse_indexer.index, index_name, documents)
+            return "sparse", result
+        except Exception as e:
+            logger.error(f"Error in sparse indexer: {str(e)}")
+            return "sparse", e
+
+    async def _run_vector_indexer(self, file_name, index_name, documents) -> Tuple[str, Union[Tuple[bool, Any], Exception]]:
+        logger.info(f"Running vector store indexer with file: {file_name}, index: {index_name}")
+        try:
+            result = await asyncio.to_thread(self.vector_store_indexer.index, file_name, index_name, documents)
+            return "vector", result
+        except Exception as e:
+            logger.error(f"Error in vector store indexer: {str(e)}")
+            return "vector", e
 
     async def index(self, file, index_name):
         logger.info(f"Starting indexing process for file with index name: {index_name}")
@@ -27,36 +57,59 @@ class Indexer:
             documents = parsed_results.get("parsed_content")
             logger.info(f"Successfully parsed documents from file: {file_name}")
 
-            logger.info(f"Indexing documents in knowledge graph with index: {index_name}")
-            kg_status = self.knowledge_graph_indexer.index(index_name, documents)
+            # Run all indexers in parallel
+            tasks = [
+                self._run_kg_indexer(index_name, documents),
+                # self._run_sparse_indexer(index_name, documents),
+                self._run_vector_indexer(file_name, index_name, documents)
+            ]
+            
+            # Wait for all tasks to complete, collecting results and errors
+            results = await asyncio.gather(*tasks, return_exceptions=False)
+            
+            # Process results
+            indexer_results = {}
+            document_features = None
+            failed_indices = []
+            
+            for indexer_type, result in results:
+                if isinstance(result, Exception):
+                    failed_indices.append(f"{indexer_type} ({str(result)})")
+                    indexer_results[indexer_type] = False
+                else:
+                    if indexer_type == "vector":
+                        vector_status, doc_features = result
+                        indexer_results[indexer_type] = vector_status
+                        if vector_status:
+                            document_features = doc_features
+                    else:
+                        indexer_results[indexer_type] = result
 
-            logger.info(f"Indexing documents in sparse index with index: {index_name}")
-            sparse_index = self.sparse_indexer.index(index_name, documents)
-
-            logger.info(f"Indexing documents in vector store with file: {file_name}, index: {index_name}")
-            vector_status , document_features = self.vector_store_indexer.index(file_name, index_name, documents)
-            
-            document = Document(
-                user_id=index_name,
-                name=file_name,
-                type=document_features.document_type,
-                summary=document_features.summary,
-                highlights=document_features.highlights
-            )
-            
-            service = DocumentService()
-            service.insert_document(document)
-            
-            if kg_status and vector_status and sparse_index:
-                logger.info(f"Successfully indexed file {file_name} across all indices")
-                return True
-            else:
-                failed_indices = []
-                if not kg_status: failed_indices.append("Knowledge Graph")
-                if not vector_status: failed_indices.append("Vector Store")
-                if not sparse_index: failed_indices.append("Sparse Index")
+            # Only create document if vector indexing succeeded
+            if document_features and indexer_results.get("vector"):
+                document = Document(
+                    user_id=index_name,
+                    name=file_name,
+                    type=document_features.document_type,
+                    summary=document_features.summary,
+                    highlights=document_features.highlights
+                )
                 
-                logger.error(f"Failed to index file {file_name} in: {', '.join(failed_indices)}")
+                service = DocumentService()
+                service.insert_document(document)
+            
+            # Check if any indexers succeeded
+            if any(indexer_results.values()):
+                succeeded = [k for k, v in indexer_results.items() if v]
+                logger.info(f"Successfully indexed in: {', '.join(succeeded)}")
+                
+                if failed_indices:
+                    logger.error(f"Failed indexers: {', '.join(failed_indices)}")
+                
+                # Return true if at least vector store succeeded (since we need document features)
+                return indexer_results.get("vector", False)
+            else:
+                logger.error(f"All indexers failed: {', '.join(failed_indices)}")
                 return False
 
         except Exception as e:
