@@ -4,13 +4,14 @@ import app.cortex._constants as constants
 import app.cortex._settings as settings
 from ._utils import utils
 from app.cortex import memory_functions
+from langchain_core.messages import AIMessage
 
 from langchain_core.prompts import ChatPromptTemplate
 from app.logging_config import memory_logger
 import tiktoken
 from langchain_core.messages.utils import get_buffer_string
     
-def save_recall_memory(memory: str, thread_id:str, user_id:str) -> str:
+def save_recall_memory(memory: str, summary: str, ai_response: str, thread_id:str, user_id:str) -> str:
     """Save a memory to the database for later semantic retrieval.
 
     Args:
@@ -36,10 +37,13 @@ def save_recall_memory(memory: str, thread_id:str, user_id:str) -> str:
                 constants.TIMESTAMP_KEY: current_time,
                 constants.TYPE_KEY: "recall",
                 "user_id": user_id,
+                "thread_id": thread_id,
+                "summary": summary,
+                "ai_response": ai_response,
             },
         }
     ]
-    memory_logger.info(f"Saving memory: {documents}")
+    
     utils.get_index().upsert(
         vectors=documents,
         namespace=settings.SETTINGS.pinecone_namespace,
@@ -81,7 +85,7 @@ prompt = ChatPromptTemplate.from_messages(
             "## Instructions\n"
             "After processing the current conversation, generate the following outputs:\n"
             "1. **Updated Summary**: Provide a concise summary of the conversation so far or incrementally update an existing summary\n"
-            "2. **Recall Memory**: Identify and list any new information that should be stored as recall memory.\n"
+            "2. **Recall Memory**: Identify and list any new information that should be stored as recall memory. Keep the recall memory as detailed as possible. so that it can be used to answer the user's repetitive questions later\n"
             "3. **Core Memory**: Identify and list any new information that should be stored as core memory.\n\n"
             "4. Give an appropriate title for the conversation\n\n"
             "Use these outputs to persist information you want to retain in the next conversation."
@@ -126,11 +130,14 @@ def observer(messages, current_summary, user_id, thread_id):
     
     recall_memories = memory_functions.search_memory(user_id, convo_str)
     memory_logger.info(f"Retrieved {len(recall_memories)} recall memories")
+    memory_logger.info(f"Recall memories: {recall_memories}")
     
     memory_update = memory_builder(messages, current_summary, recall_memories)
     memory_logger.info("Memory builder completed")
     
-    save_recall_memory(memory_update.recall_memory, thread_id, user_id)
+    
+    ai_response = ' '.join([message.content for message in messages if isinstance(message, AIMessage)])
+    save_recall_memory(memory_update.recall_memory, memory_update.updated_summary, ai_response, thread_id, user_id)
     memory_logger.info("Recall memory saved")
         
     return memory_update.updated_summary , memory_update.title

@@ -16,8 +16,13 @@ class MemoryUpdate(BaseModel):
     updated_summary: str
     recall_memory: str
     title:str
+    
+class RecallMemory(BaseModel):
+    memory: str
+    summary: str
+    ai_response: str
 
-def search_memory(user_id:str ,query: str, top_k: int = 5) -> list[str]:
+def search_memory(user_id:str ,query: str, top_k: int = 5, need_breif_recall_memory: bool = True) -> list[str]:
     """Search for memories in the database based on semantic similarity.
 
     Args:
@@ -32,7 +37,7 @@ def search_memory(user_id:str ,query: str, top_k: int = 5) -> list[str]:
     vector = embeddings.embed_query(query)
     response = utils.get_index().query(
         vector=vector,
-        filter={
+        filter={                                
             "user_id": {"$eq": user_id},
             constants.TYPE_KEY: {"$eq": "recall"},
         },
@@ -41,9 +46,15 @@ def search_memory(user_id:str ,query: str, top_k: int = 5) -> list[str]:
         top_k=top_k,
     )
     memories = []
-    if matches := response.get("matches"):
-        memories = [m["metadata"][constants.PAYLOAD_KEY] for m in matches]
-    return memories
+    if need_breif_recall_memory:
+        if matches := response.get("matches"):
+            memories = [m["metadata"][constants.PAYLOAD_KEY] for m in matches]
+            return memories
+    else:
+        if matches := response.get("matches"):
+            for match in matches:
+                RecallMemory(memory=match["metadata"][constants.PAYLOAD_KEY], summary=match["metadata"]["summary"], ai_response=match["metadata"]["ai_response"])
+            return memories
 
 def load_memories(state: schemas.State, config: RunnableConfig) -> schemas.State:
     """Load core and recall memories for the current conversation.

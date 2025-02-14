@@ -15,7 +15,7 @@ from langchain_core.runnables.config import (
     ensure_config,
     get_executor_for_config,
 )
-from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.memory import MemorySaver
 from app.logging_config import agent_logger
 from app.config import gemini_pro_model_langchain
 from .tools import table_operator
@@ -164,8 +164,7 @@ builder.add_edge(START, "decide")
 builder.add_edge("decide", "call_tool")
 builder.add_edge("call_tool", END)
 
-conn = sqlite3.connect('checkpoints.sqlite', check_same_thread=False)
-memory = SqliteSaver(conn)
+memory = MemorySaver()
 
 cortex = builder.compile(checkpointer=memory)
                          

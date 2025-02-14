@@ -1,11 +1,11 @@
 import logging
 from pydantic import BaseModel  # Updated import
-from .config import gemini_pro_model, gemini_embeddings_model, gemini_pro_model_langchain, gemini_flash_model
+from .config import gemini_pro_model, gemini_embeddings_model, gemini_pro_model_langchain, gemini_flash_model, gemini_flash_model_llamaindex
 from llama_index.llms.gemini import Gemini
 from llama_index.embeddings.gemini import GeminiEmbedding
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
-from google import genai
+import google.generativeai as genai
 import os
 from llama_index.core import Settings
 from dotenv import load_dotenv
@@ -37,6 +37,11 @@ class LLMInitializer:
             llm = Gemini(model=gemini_pro_model, temperature=0.3, api_key=os.getenv("GEMINI_API_KEY_PROD"))
             Settings.llm = llm
             return llm
+        elif type == "gemini_flash":
+            logger.info(f"Initializing LLM model: {gemini_flash_model}")
+            llm = Gemini(model=gemini_flash_model_llamaindex, temperature=0.3, api_key=os.getenv("GEMINI_API_KEY_PROD"))
+            Settings.llm = llm
+            return llm
         
     def initialize_langchain_embedding_model(self):
         # Initialize the LLM model using gemini_pro_model
@@ -55,16 +60,17 @@ class LLMInitializer:
         return gemini_embeddings
 
     def initialize_google_client(self):
-        # Initialize the LLM model using gemini_pro_model
-        logger.info(f"Initializing LLM model: {gemini_pro_model}")
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY_PROD"), http_options={'api_version':'v1alpha'})
-        return client
+        # Initialize the Google Generative AI client
+        logger.info(f"Initializing Google Generative AI client")
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY_PROD"))
+        return genai
 
 # Global instance of LLMInitializer
 llm_initializer = LLMInitializer()
-gemini_pro_model = llm_initializer.initialize_llamaindex_llm("gemini_pro")
+gemini_pro_model_llamaindex = llm_initializer.initialize_llamaindex_llm("gemini_pro")
+gemini_flash_model_llamaindex = llm_initializer.initialize_llamaindex_llm("gemini_flash")
 google_client = llm_initializer.initialize_google_client()
-gemini_embeddings_model = llm_initializer.initialize_llamaindex_embedding_model()
+gemini_embeddings_model_llamaindex = llm_initializer.initialize_llamaindex_embedding_model()
 gemini_pro_model_langchain = llm_initializer.initialize_langchain_llm("gemini_pro")
 gemini_flash_model_langchain = llm_initializer.initialize_langchain_llm("gemini_flash")
 gemini_langchain_embeddings = llm_initializer.initialize_langchain_embedding_model()

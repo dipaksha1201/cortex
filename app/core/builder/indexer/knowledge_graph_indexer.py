@@ -1,4 +1,4 @@
-from ....initialization import gemini_pro_model , gemini_embeddings_model
+from ....initialization import gemini_pro_model_llamaindex , gemini_embeddings_model_llamaindex
 from llama_index.core.indices.property_graph import (
     ImplicitPathExtractor,
     SimpleLLMPathExtractor,
@@ -32,15 +32,25 @@ class KnowledgeGraphIndexer(BaseIndexer):
             sub_docs = BasicPreprocessor.split_docs_by_separator(documents)
             logger.info(f"Number of sub-documents created: {len(sub_docs)}")
             
-            if index:
-                logger.info(f"Index found for '{index_name}'. Inserting sub-documents.")
-                self.update_property_graph_index(index.property_graph_store, sub_docs, gemini_pro_model)
-                
+            # Batch processing implementation
+            if len(sub_docs) > 30:
+                batches = [sub_docs[i:i+30] for i in range(0, len(sub_docs), 30)]
+                logger.info(f"Processing in {len(batches)} batches")
+                for batch in batches:
+                    if index:
+                        logger.info("Updating index with batch")
+                        self.update_property_graph_index(index.property_graph_store, batch, gemini_pro_model_llamaindex)
+                    else:
+                        logger.info("Creating new index from batch")
+                        index = self.create_property_graph_index(batch, gemini_pro_model_llamaindex)
+                        logger.info("Initial batch processed successfully")
             else:
-                logger.info(f"No existing index found for '{index_name}'. Creating new property graph index.")
-                # index = await self.create_property_graph_index(sub_docs, gemini_pro_model)
-                index = self.create_property_graph_index(sub_docs, gemini_pro_model)
-                logger.info("New property graph index created successfully.")
+                if index:
+                    logger.info(f"Index found. Updating with {len(sub_docs)} documents")
+                    self.update_property_graph_index(index.property_graph_store, sub_docs, gemini_pro_model_llamaindex)
+                else:
+                    logger.info("Creating new index with all documents")
+                    index = self.create_property_graph_index(sub_docs, gemini_pro_model_llamaindex)
 
             logger.info("Persisting index to disk storage")
             DiskStore.persist_index(index, index_source, index_name)
@@ -71,12 +81,12 @@ class KnowledgeGraphIndexer(BaseIndexer):
                 ],
                 show_progress=True,
                 property_graph_store=store,
-                embed_model=gemini_embeddings_model,
+                embed_model=gemini_embeddings_model_llamaindex,
             )
-            logger.info("Property graph index created successfully")
+            logger.info("Property graph index updated successfully")
             return index
         except Exception as e:
-            logger.error(f"Error creating property graph index: {e}", exc_info=True)
+            logger.error(f"Error updated property graph index: {e}", exc_info=True)
             raise
     
     def create_property_graph_index(self, sub_docs, llm):
@@ -93,7 +103,7 @@ class KnowledgeGraphIndexer(BaseIndexer):
                     ),
                 ],
                 show_progress=True,
-                embed_model=gemini_embeddings_model,
+                embed_model=gemini_embeddings_model_llamaindex,
             )
             logger.info("Property graph index created successfully")
             return index
