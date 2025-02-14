@@ -1,8 +1,10 @@
-from typing import List
+from typing import List, Union
 from pydantic import BaseModel, Field
 from langchain_core.documents import Document
 from langchain.prompts import PromptTemplate
 from app.logging_config import indexing_logger as logger
+from ...common.multivector_retriever import MultiVectorRetrieverBuilder
+
 # Define the expected structured output using a Pydantic model.
 class DocumentFeatures(BaseModel):
     summary: str = Field(description="A comprehensive summary of the document in 10-15 lines covering its core content and important sections.")
@@ -51,3 +53,49 @@ def generate_document_features(summaries: List[Document], llm: any) -> DocumentF
     response = model.invoke(formatted_prompt)
     logger.info(f"Structured output response by generate document features: {response}")
     return response
+
+class ColumnValue(BaseModel):
+    value: str = Field(description="The extracted value for the column")
+
+column_retrieval_template = """
+You are an expert information extractor. Based on the document content below, generate information specifically for the column: {column_name}
+
+Document Content:
+{document_content}
+
+Instructions:
+1. Focus ONLY on extracting information relevant to the {column_name} column
+2. Return a JSON object with a single field "value" containing the extracted information as a string
+3. If the column typically contains multiple items, concatenate them with semicolons (;)
+4. Keep the format consistent with how this column appears in the DocumentFeatures model
+"""
+
+column_retrieval_prompt = PromptTemplate(
+    template=column_retrieval_template,
+    input_variables=["column_name", "document_content"]
+)
+
+def retrieve_column_information(summaries: List[Document], column_name: str, llm: any) -> ColumnValue:
+    """
+    Retrieves specific column information from documents using an LLM.
+    
+    Parameters:
+        summaries (List[Document]): List of documents to extract information from
+        column_name (str): The name of the column to extract information for
+        llm (any): An instantiated LLM from LangChain
+    
+    Returns:
+        ColumnValue: A structured output containing the extracted information
+    """
+    combined_text = "\n\n".join([doc.page_content for doc in summaries])
+    model = llm.with_structured_output(ColumnValue)
+    formatted_prompt = column_retrieval_prompt.format(
+        column_name=column_name,
+        document_content=combined_text
+    )
+    
+    response = model.invoke(formatted_prompt)
+    logger.info(f"Column retrieval response for {column_name}: {response}")
+    return response
+
+

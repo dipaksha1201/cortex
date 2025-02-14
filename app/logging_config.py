@@ -46,3 +46,10 @@ retriever_logger = logging.getLogger("retriever")
 retriever_logger.setLevel(logging.INFO)
 retriever_logger.addHandler(logging.FileHandler(retriever_log_file_path, mode='a'))
 retriever_logger.addHandler(logging.StreamHandler())
+
+service_log_file_path = os.path.join(log_dir, "service.log")
+# Configure service logger
+service_logger = logging.getLogger("service")
+service_logger.setLevel(logging.INFO)
+service_logger.addHandler(logging.FileHandler(service_log_file_path, mode='a'))
+service_logger.addHandler(logging.StreamHandler())

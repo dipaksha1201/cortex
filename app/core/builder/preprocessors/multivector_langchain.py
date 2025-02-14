@@ -34,6 +34,7 @@ class MultiVectorLangchain:
             for _doc in _sub_docs:
                 _doc.metadata[self.id_key] = _id
                 _doc.metadata["source"] = self.file_name
+                _doc.metadata["document_type"] = "chunk"
             document_chunks.extend(_sub_docs)
         return document_chunks
 
@@ -47,7 +48,7 @@ class MultiVectorLangchain:
         )
         summaries = chain.batch(langchain_docs, {"max_concurrency": 5})
         summary_docs = [
-            Document(page_content=s, metadata={self.id_key: self.doc_ids[i], "source" : self.file_name})
+            Document(page_content=s, metadata={self.id_key: self.doc_ids[i], "source" : self.file_name, "document_type": "summary"})
             for i, s in enumerate(summaries)
         ]
         return summary_docs
@@ -70,7 +71,7 @@ class MultiVectorLangchain:
         question_docs = []
         for i, question_list in enumerate(hypothetical_questions):
             question_docs.extend(
-                [Document(page_content=s, metadata={self.id_key: self.doc_ids[i], "source" : self.file_name}) for s in question_list]
+                [Document(page_content=s, metadata={self.id_key: self.doc_ids[i], "source" : self.file_name, "document_type": "question"}) for s in question_list]
             )
 
         return question_docs
