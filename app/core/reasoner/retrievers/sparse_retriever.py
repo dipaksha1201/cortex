@@ -1,12 +1,11 @@
 import logging
 from typing import List, Tuple
-from llama_index.core import SummaryIndex
-from llama_index.core.retrievers import RecursiveRetriever
+from llama_index.core import SummaryIndex, VectorStoreIndex
+from llama_index.core.retrievers import BaseRetriever, VectorIndexRetriever, RecursiveRetriever
 from llama_index.core.query_engine import RetrieverQueryEngine
-from llama_index.retrievers.bm25.base import BM25Retriever
+from llama_index.retrievers.bm25 import BM25Retriever
 from app.storage import DiskStore
 from app.logging_config import retriever_logger as logger
-from llama_index.core.retrievers import VectorIndexRetriever
 from concurrent.futures import ThreadPoolExecutor
 
 class SparseRetriever:

@@ -5,7 +5,7 @@ from llama_index.llms.gemini import Gemini
 from llama_index.embeddings.gemini import GeminiEmbedding
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_google_genai import ChatGoogleGenerativeAI
-from google import genai
+import google.generativeai as genai
 import os
 from llama_index.core import Settings
 from dotenv import load_dotenv
@@ -60,10 +60,10 @@ class LLMInitializer:
         return gemini_embeddings
 
     def initialize_google_client(self):
-        # Initialize the LLM model using gemini_pro_model
-        logger.info(f"Initializing LLM model: {gemini_pro_model}")
-        client = genai.Client(api_key=os.getenv("GEMINI_API_KEY_PROD"), http_options={'api_version':'v1alpha'})
-        return client
+        # Initialize the Google Generative AI client
+        logger.info(f"Initializing Google Generative AI client")
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY_PROD"))
+        return genai
 
 # Global instance of LLMInitializer
 llm_initializer = LLMInitializer()

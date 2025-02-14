@@ -7,8 +7,8 @@ from langchain_core.runnables import RunnableConfig
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from pinecone import Pinecone
 from langchain_google_genai import ChatGoogleGenerativeAI
-from lang_memgpt import _schemas as schemas
-from lang_memgpt import _settings as settings
+from . import _schemas as schemas
+from . import _settings as settings
 from app.storage.pinecone import PineconeStore
 import os
 
