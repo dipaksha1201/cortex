@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .api import api_router
 from .api import chat_router
+from .api import doc_router
 from .synapse import synapse_router
 from .logging_config import reasoning_logger
 import logging
@@ -49,6 +50,7 @@ app.add_middleware(
 # Include routers
 app.include_router(api_router, prefix="/api", tags=["API"])
 app.include_router(chat_router, prefix="/chat", tags=["API"])
+app.include_router(doc_router, prefix="/api", tags=["API"])
 app.include_router(synapse_router, prefix="/synapse", tags=["System"])
 
 @app.get("/")
