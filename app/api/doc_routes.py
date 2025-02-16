@@ -9,9 +9,9 @@ import logging
 # Configure logging
 logger = logging.getLogger(__name__)
 
-router = APIRouter()
+doc_router = APIRouter()
 
-@router.post("/index")
+@doc_router.post("/index")
 async def index_file(
     user_name: str,
     file: UploadFile = File(...)
@@ -46,7 +46,7 @@ async def index_file(
             detail="Failed to index file"
         )
 
-@router.get("/documents/all")
+@doc_router.get("/documents/all")
 async def get_all_documents(user_id: str):
     try:
         logger.info("Retrieving all documents")
@@ -65,7 +65,7 @@ class DocumentColumnRequest(BaseModel):
     file_name: str
     column_name: str
 
-@router.post("/document-column")
+@doc_router.post("/document-column")
 async def get_document_column(request: DocumentColumnRequest):
     """Get a specific column from a document"""
     try:
