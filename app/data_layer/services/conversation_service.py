@@ -77,3 +77,13 @@ class ConversationService:
             # raise ValueError(f"Conversation with id '{conversation_id}' not found.")
         logger.info("Conversation with id '%s' retrieved successfully", conversation_id)
         return Conversation(**document)
+
+    def delete_conversation(self, conversation_id: str) -> bool:
+        """Delete a conversation by its conversation id."""
+        logger.debug("Deleting conversation with id: %s", conversation_id)
+        result = self.db["conversation"].delete_one({"_id": ObjectId(conversation_id)})
+        if result.deleted_count == 0:
+            logger.error("Conversation with id '%s' not found", conversation_id)
+            return False
+        logger.info("Conversation with id '%s' deleted successfully", conversation_id)
+        return True

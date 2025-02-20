@@ -27,8 +27,7 @@ class Indexer:
     async def _run_sparse_indexer(self, index_name, documents) -> Tuple[str, Union[bool, Exception]]:
         logger.info(f"Running sparse indexer with index: {index_name}")
         try:
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(None, self.sparse_indexer.index, index_name, documents)
+            result = await asyncio.to_thread(self.sparse_indexer.index, index_name, documents)
             return "sparse", result
         except Exception as e:
             logger.error(f"Error in sparse indexer: {str(e)}")
@@ -45,48 +44,71 @@ class Indexer:
 
     async def index(self, file, index_name):
         logger.info(f"Starting indexing process for file with index name: {index_name}")
-        try:
-            logger.info(f"Attempting to parse file using Parser.load_documents")
-            file_name = file.filename    
-            parsed_results = await Parser.load_data(file)
-            
-            if "parsed_content" not in parsed_results:
-                logger.error(f"Error parsing file: {parsed_results['error']}")
-                return False
-            
-            documents = parsed_results.get("parsed_content")
-            logger.info(f"Successfully parsed documents from file: {file_name}")
+        max_attempts = 2  # Number of attempts to try indexing
+        attempt = 0
+        failed_indices = []
 
-            # Run all indexers in parallel
-            tasks = [
-                self._run_kg_indexer(index_name, documents),
-                # self._run_sparse_indexer(index_name, documents),
-                self._run_vector_indexer(file_name, index_name, documents)
-            ]
-            
-            # Wait for all tasks to complete, collecting results and errors
-            results = await asyncio.gather(*tasks, return_exceptions=False)
-            
-            # Process results
-            indexer_results = {}
-            document_features = None
-            failed_indices = []
-            
-            for indexer_type, result in results:
-                if isinstance(result, Exception):
-                    failed_indices.append(f"{indexer_type} ({str(result)})")
-                    indexer_results[indexer_type] = False
-                else:
-                    if indexer_type == "vector":
-                        vector_status, doc_features = result
-                        indexer_results[indexer_type] = vector_status
+        while attempt < max_attempts:
+            try:
+                logger.info(f"Attempt {attempt + 1}: Attempting to parse file using Parser.load_documents")
+                file_name = file.filename    
+                parsed_results = await Parser.load_data(file)
+                
+                if "parsed_content" not in parsed_results:
+                    logger.error(f"Error parsing file: {parsed_results['error']}")
+                    return False
+                
+                documents = parsed_results.get("parsed_content")
+                logger.info(f"Successfully parsed documents from file: {file_name}")
+
+                # Initialize results tracking
+                indexer_results = {}
+                document_features = None
+
+                # Run KG indexer
+                if attempt == 0 or "kg" in failed_indices:
+                    # kg_type, kg_result = await self._run_kg_indexer(index_name, documents)
+                    kg_type, kg_result = self.knowledge_graph_indexer.index(index_name, documents)
+                    if isinstance(kg_result, Exception) or kg_result is False:
+                        failed_indices.append(kg_type)
+                        indexer_results[kg_type] = False
+                        logger.error(f"KG indexer failed on attempt {attempt + 1}")
+                    else:
+                        indexer_results[kg_type] = kg_result
+                        if kg_type in failed_indices:
+                            failed_indices.remove(kg_type)
+                        logger.info("KG indexer succeeded")
+
+                # Run vector indexer
+                if attempt == 0 or "vector" in failed_indices:
+                    # vector_type, vector_result = await self._run_vector_indexer(file_name, index_name, documents)
+                    vector_type, vector_result = self.vector_store_indexer.index(file_name, index_name, documents)
+                    if isinstance(vector_result, Exception) or vector_result is False:
+                        failed_indices.append(vector_type)
+                        indexer_results[vector_type] = False
+                        logger.error(f"Vector indexer failed on attempt {attempt + 1}")
+                    else:
+                        vector_status, doc_features = vector_result
+                        indexer_results[vector_type] = vector_status
                         if vector_status:
                             document_features = doc_features
-                    else:
-                        indexer_results[indexer_type] = result
+                            if vector_type in failed_indices:
+                                failed_indices.remove(vector_type)
+                            logger.info("Vector indexer succeeded")
+                        else:
+                            logger.error(f"Vector indexer returned false status on attempt {attempt + 1}")
+                            failed_indices.append(vector_type)
 
-            # Only create document if vector indexing succeeded
-            if document_features and indexer_results.get("vector"):
+                # Check if we need to retry any failed indexers
+                if failed_indices:
+                    logger.error(f"Failed indexers: {', '.join(failed_indices)}")
+                    attempt += 1
+                    if attempt < max_attempts:
+                        logger.info("Retrying failed indexers...")
+                        continue
+                    return False
+
+                # If we get here, both indexers succeeded
                 document = Document(
                     user_id=index_name,
                     name=file_name,
@@ -97,21 +119,13 @@ class Indexer:
                 
                 service = DocumentService()
                 service.insert_document(document)
-            
-            # Check if any indexers succeeded
-            if any(indexer_results.values()):
-                succeeded = [k for k, v in indexer_results.items() if v]
-                logger.info(f"Successfully indexed in: {', '.join(succeeded)}")
-                
-                if failed_indices:
-                    logger.error(f"Failed indexers: {', '.join(failed_indices)}")
-                
-                # Return true if at least vector store succeeded (since we need document features)
-                return indexer_results.get("vector", False)
-            else:
-                logger.error(f"All indexers failed: {', '.join(failed_indices)}")
-                return False
+                logger.info("Successfully completed indexing process")
+                return True
 
-        except Exception as e:
-            logger.error(f"Error during indexing process: {str(e)}", exc_info=True)
-            return False
+            except Exception as e:     
+                logger.error(f"Exception during indexing attempt {attempt + 1}: {str(e)}")
+                attempt += 1
+                if attempt < max_attempts:
+                    logger.info("Retrying indexing process...")
+                    continue
+                return False

@@ -44,3 +44,20 @@ async def get_all_conversations_api(user_id: str):
     except Exception as e:
         logger.error("Error in /get/conversation/all endpoint: %s", str(e))
         raise HTTPException(status_code=500, detail="Internal Server Error")
+
+@chat_router.delete("/conversation/{conversation_id}")
+async def delete_conversation_api(conversation_id: str):
+    try:
+        logger.info(f"Deleting conversation with id: {conversation_id}")
+        service = ConversationService()
+        success = service.delete_conversation(conversation_id=conversation_id)
+        if success:
+            return {"message": f"Conversation '{conversation_id}' deleted successfully"}
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Conversation with id '{conversation_id}' not found"
+            )
+    except Exception as e:
+        logger.error("Error in /conversation/{conversation_id} DELETE endpoint: %s", str(e))
+        raise HTTPException(status_code=500, detail="Internal Server Error")

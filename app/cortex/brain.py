@@ -87,12 +87,6 @@ def decide_route(state, config: dict):
     bound = decision_prompt | llm.bind_tools(all_tools)
     
     agent_logger.info(f"Agent thread_id at start:\n {config['configurable']['thread_id']}")
-    # agent_logger.info(f"Agent state new_query:\n {state['new_query']}")
-    msg = state["messages"][-1]
-    state['messages'] = state['messages'][:4]
-    state['messages'].append(msg)
-    # state['messages'] = remove_empty_messages(messages)
-
     agent_logger.info(f"Agent state messages:\n {state['messages']}")
     
     decision = bound.invoke( {
@@ -121,7 +115,9 @@ def route_tools(state: schemas.State, config: dict):
         # If the tool is "KnowledgeSearch", call it directly.
         if tool_name == "KnowledgeSearch":
             # Directly invoke the tool function.
-            tool_output = internal_knowledge_search(tool_input)
+            agent_logger.info(f"Initiating internal knowledge search")
+            query = state["messages"][-1].content
+            tool_output = internal_knowledge_search(query)
             
         # If the tool is "TableOperator", call it directly.
         if tool_name == "TableOperator":

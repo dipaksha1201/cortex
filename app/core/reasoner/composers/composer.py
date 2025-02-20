@@ -17,6 +17,7 @@ class Composer:
         - Consult the Vector Store Context to provide additional unstructured and semantic context.
         - Cross-reference data from all contexts to ensure accuracy and eliminate inconsistencies.
         - Deliver a detailed, clear, and complete response while citing data sources when possible.
+        - If no relevant information is found in the contexts, respond with "No relevant information found".
 
         Steps:
         1. Parse the query to understand its core intent.

@@ -126,11 +126,17 @@ def observer(messages, current_summary, user_id, thread_id):
     tokenizer = tiktoken.encoding_for_model("gpt-4o")
     convo_str = get_buffer_string(messages)
     convo_str = tokenizer.decode(tokenizer.encode(convo_str)[:2048])
-    memory_logger.debug(f"Processed conversation string length: {len(convo_str)}")
+    memory_logger.info(f"Processed conversation string: {convo_str}")
+    memory_logger.info("Received messages: " + str(messages))
+    memory_logger.info(f"Processed conversation string length: {len(convo_str)}")
     
     recall_memories = memory_functions.search_memory(user_id, convo_str)
-    memory_logger.info(f"Retrieved {len(recall_memories)} recall memories")
-    memory_logger.info(f"Recall memories: {recall_memories}")
+    if recall_memories:
+        memory_logger.info(f"Retrieved {len(recall_memories)} recall memories")
+        memory_logger.info(f"Recall memories: {recall_memories}")
+    else:
+        memory_logger.info("No recall memories found")
+        recall_memories = [" "]
     
     memory_update = memory_builder(messages, current_summary, recall_memories)
     memory_logger.info("Memory builder completed")
