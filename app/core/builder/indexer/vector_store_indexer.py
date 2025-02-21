@@ -64,7 +64,7 @@ class VectorStoreIndexer(BaseIndexer):
             
         except Exception as e:
             logger.error(f"Error indexing documents for '{index_name}': {str(e)}", exc_info=True)
-            return False
+            return False , e
 
     def get_index_from_storage(self, index_name):
         """Get existing retriever from storage"""

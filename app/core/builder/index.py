@@ -68,15 +68,15 @@ class Indexer:
                 # Run KG indexer
                 if attempt == 0 or "kg" in failed_indices:
                     # kg_type, kg_result = await self._run_kg_indexer(index_name, documents)
-                    kg_type, kg_result = self.knowledge_graph_indexer.index(index_name, documents)
+                    kg_result = self.knowledge_graph_indexer.index(index_name, documents)
                     if isinstance(kg_result, Exception) or kg_result is False:
-                        failed_indices.append(kg_type)
-                        indexer_results[kg_type] = False
+                        failed_indices.append(kg_result)
+                        indexer_results[kg_result] = False
                         logger.error(f"KG indexer failed on attempt {attempt + 1}")
                     else:
-                        indexer_results[kg_type] = kg_result
-                        if kg_type in failed_indices:
-                            failed_indices.remove(kg_type)
+                        indexer_results[kg_result] = kg_result
+                        if kg_result in failed_indices:
+                            failed_indices.remove(kg_result)
                         logger.info("KG indexer succeeded")
 
                 # Run vector indexer
@@ -88,9 +88,9 @@ class Indexer:
                         indexer_results[vector_type] = False
                         logger.error(f"Vector indexer failed on attempt {attempt + 1}")
                     else:
-                        vector_status, doc_features = vector_result
-                        indexer_results[vector_type] = vector_status
-                        if vector_status:
+                        doc_features = vector_result
+                        indexer_results[vector_type] = vector_type
+                        if vector_type:
                             document_features = doc_features
                             if vector_type in failed_indices:
                                 failed_indices.remove(vector_type)
@@ -103,9 +103,9 @@ class Indexer:
                 if failed_indices:
                     logger.error(f"Failed indexers: {', '.join(failed_indices)}")
                     attempt += 1
-                    if attempt < max_attempts:
-                        logger.info("Retrying failed indexers...")
-                        continue
+                    # if attempt < max_attempts:
+                    #     logger.info("Retrying failed indexers...")
+                    #     continue
                     return False
 
                 # If we get here, both indexers succeeded
@@ -125,7 +125,7 @@ class Indexer:
             except Exception as e:     
                 logger.error(f"Exception during indexing attempt {attempt + 1}: {str(e)}")
                 attempt += 1
-                if attempt < max_attempts:
-                    logger.info("Retrying indexing process...")
-                    continue
+                # if attempt < max_attempts:
+                #     logger.info("Retrying indexing process...")
+                #     continue
                 return False
